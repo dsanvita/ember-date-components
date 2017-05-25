@@ -376,6 +376,13 @@ export default Component.extend({
   }),
 
   /**
+   * Passed to basic-dropdown. Useful for rendering in a modal.
+   * @type {Boolean}
+   * @public
+   */
+  renderInPlace: false,
+
+  /**
    * This maps how option names are mapped to actual options.
    * You can overwrite this if you want to have different option shortcuts.
    *

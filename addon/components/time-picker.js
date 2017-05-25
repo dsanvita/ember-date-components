@@ -165,6 +165,13 @@ export default Component.extend({
   selected: -1,
 
   /**
+   * Passed to basic-dropdown. Useful for rendering in a modal.
+   * @type {Boolean}
+   * @public
+   */
+  renderInPlace: false,
+
+  /**
    * The general options for this component.
    * These are built from the single attributes, but you could theoretically overwrite this if you need custom behaviour.
    * The options should always be fetched via this object.
