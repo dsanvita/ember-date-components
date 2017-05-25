@@ -2,7 +2,6 @@ import Ember from 'ember';
 import layout from '../templates/components/date-picker';
 import moment from 'moment';
 import computed from 'ember-computed';
-import $ from 'jquery';
 
 const {
   get,
@@ -10,7 +9,7 @@ const {
   Component,
   A: array,
   typeOf: getTypeOf,
-  String: EmberString
+  run
 } = Ember;
 
 /**
@@ -131,6 +130,36 @@ export default Component.extend({
   disabled: false,
 
   /**
+   * If set to true, the month picker will not be usable.
+   *
+   * @attribute disableMonthPicker
+   * @type {Boolean}
+   * @default false
+   * @public
+   */
+  disableMonthPicker: false,
+
+  /**
+   * If set to true, the year picker will not be usable.
+   *
+   * @attribute disableYearPicker
+   * @type {Boolean}
+   * @default false
+   * @public
+   */
+  disableYearPicker: false,
+
+  /**
+   * The number of years before & after the current year to show in the year picker.
+   *
+   * @attribute availableYearOffset
+   * @type {Number}
+   * @default 10
+   * @public
+   */
+  availableYearOffset: 10,
+
+  /**
    * The action to call whenever one of the value changes.
    *
    * @event action
@@ -149,7 +178,7 @@ export default Component.extend({
   closeAction: null,
 
   /**
-   * Whether the calendar displays the week starting on Monday or Sunday.
+   * Whether the calendar displays the week starting on Mondayf or Sunday.
    *
    * @attribute startWeekOnSunday
    * @type {Boolean}
@@ -255,7 +284,7 @@ export default Component.extend({
     let vals = get(this, '_dates') || array([]);
     let dateFormat = get(this, 'buttonDateFormat');
 
-    let [,dateTo] = vals;
+    let [, dateTo] = vals;
 
     if (!dateTo) {
       return get(this, 'placeholder');
@@ -319,35 +348,6 @@ export default Component.extend({
   }),
 
   /**
-   * The width of the calendar widget. If you use the default styling, this will be 300.
-   * If you do not use the default styling, change this to the value you use.
-   * This is used to calculate the correct position of the calendar if it would run out of the window on the right side.
-   *
-   * @attribute calendarWidth
-   * @type {Number}
-   * @default 280
-   * @private
-   */
-  calendarWidth: computed('options', function() {
-    let baseWidth = 280;
-    let optionWidth = 140;
-
-    return get(this, 'options') ? baseWidth + optionWidth : baseWidth;
-  }),
-
-  /**
-   * This string is built to fix the offset of the component.
-   * For example, if the date-picker is at the right edge of the window, the date-picker would run outside of the window.
-   * This offset ensures that the date picker will stay inside of the window.
-   * This will be set to a style-compatible SafeString, e.g. `transform: translate(100px,0)`.
-   *
-   * @property translateX
-   * @type {String}
-   * @private
-   */
-  translateX: null,
-
-  /**
    * These are the parsed options.
    * String/default options are converted into actual option objects via _optionsMap.
    *
@@ -374,6 +374,13 @@ export default Component.extend({
       return getTypeOf(option) === 'string' ? optionsMap[option] : option;
     });
   }),
+
+  /**
+   * Passed to basic-dropdown. Useful for rendering in a modal.
+   * @type {Boolean}
+   * @public
+   */
+  renderInPlace: false,
 
   /**
    * This maps how option names are mapped to actual options.
@@ -458,6 +465,16 @@ export default Component.extend({
     'last3Months'
   ]),
 
+  /**
+   * The API of ember-basic-dropdown.
+   * This is used to manually open/close the dropdown.
+   *
+   * @property _dropdownApi
+   * @type {Object}
+   * @private
+   */
+  _dropdownApi: null,
+
   // PROPERTIES END ----------------------------------------
 
   // HOOKS BEGIN ----------------------------------------
@@ -465,11 +482,6 @@ export default Component.extend({
   didReceiveAttrs() {
     this._super(...arguments);
     this._setupValue();
-  },
-
-  willDestroyElement() {
-    this._destroyOutsideListener();
-    this._super(...arguments);
   },
 
   // HOOKS END ----------------------------------------
@@ -535,22 +547,11 @@ export default Component.extend({
    * @method _open
    * @private
    */
-  _open() {
+  _open(forceOpenDropdown = true) {
     set(this, 'isOpen', true);
-    this._setupOutsideListener();
 
-    let $el = this.$();
-
-    let windowWidth = $(window).width();
-    let elLeftOffset = $el.offset().left;
-    let elOffset = elLeftOffset + get(this, 'calendarWidth');
-
-    if (elOffset > windowWidth) {
-      let translate = elOffset - windowWidth + 10;
-      let style = EmberString.htmlSafe(`transform: translate(-${translate}px, 0)`);
-      set(this, 'translateX', style);
-    } else {
-      set(this, 'translateX', null);
+    if (forceOpenDropdown) {
+      this._openDropdown();
     }
   },
 
@@ -560,10 +561,20 @@ export default Component.extend({
    * @method _close
    * @private
    */
-  _close() {
+  _close(sendAction = true, forceCloseDropdown = true) {
     set(this, 'isOpen', false);
     set(this, 'isToStep', false);
 
+    if (sendAction) {
+      run.once(this, this._sendCloseAction);
+    }
+
+    if (forceCloseDropdown) {
+      this._closeDropdown();
+    }
+  },
+
+  _sendCloseAction() {
     let action = get(this, 'attrs.closeAction');
     let vals = get(this, '_dates');
     let isRange = get(this, 'range');
@@ -571,8 +582,20 @@ export default Component.extend({
     if (action) {
       action(isRange ? vals : vals[0] || null);
     }
+  },
 
-    this._destroyOutsideListener();
+  _closeDropdown() {
+    let dropdownApi = get(this, '_dropdownApi');
+    if (dropdownApi) {
+      dropdownApi.actions.close();
+    }
+  },
+
+  _openDropdown() {
+    let dropdownApi = get(this, '_dropdownApi');
+    if (dropdownApi) {
+      dropdownApi.actions.open();
+    }
   },
 
   /**
@@ -673,6 +696,7 @@ export default Component.extend({
       set(this, 'currentMonth', month.clone().startOf('month'));
     }
     set(this, 'isToStep', false);
+    this._openDropdown();
   },
 
   /**
@@ -683,11 +707,12 @@ export default Component.extend({
    * @private
    */
   _moveToToStep() {
-    let [,month] = get(this, '_dates') || array();
+    let [, month] = get(this, '_dates') || array();
     if (month) {
       set(this, 'currentMonth', month.clone().startOf('month'));
     }
     set(this, 'isToStep', true);
+    this._openDropdown();
   },
 
   /**
@@ -710,36 +735,6 @@ export default Component.extend({
   _openToDate() {
     this._moveToToStep();
     this._open();
-  },
-
-  /**
-   * Setup an event listener on the body to auto-close the date-picker if the user clicks outside.
-   *
-   * @method _setupOutsideListener
-   * @private
-   */
-  _setupOutsideListener() {
-    let $element = this.$();
-
-    $('body').on(`click.${this.elementId}`, (e) => {
-      if (this.get('isDestroyed')) {
-        return;
-      }
-      let $target = $(e.target);
-      if (!$target.hasClass('date-picker__day') && !$target.closest($element).length) {
-        this._close();
-      }
-    });
-  },
-
-  /**
-   * Tear down the event listeners on the body.
-   *
-   * @method _destroyOutsideListener
-   * @private
-   */
-  _destroyOutsideListener() {
-    $('body').off(`click.${this.elementId}`);
   },
 
   // METHODS END ----------------------------------------
@@ -818,6 +813,10 @@ export default Component.extend({
       set(this, 'currentMonth', month.clone().subtract(1, 'month'));
     },
 
+    gotoMonth(month) {
+      set(this, 'currentMonth', month.clone().startOf('month'));
+    },
+
     selectDate(date) {
       let isRange = get(this, 'range');
 
@@ -835,6 +834,14 @@ export default Component.extend({
 
       this._sendAction();
       this._close();
+    },
+
+    closeDropdown() {
+      this._close(true, false);
+    },
+
+    openDropdown(dropdownApi) {
+      set(this, '_dropdownApi', dropdownApi);
     }
   }
 
