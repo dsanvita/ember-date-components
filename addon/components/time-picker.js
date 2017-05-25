@@ -83,7 +83,7 @@ export default Component.extend({
   minTime: '00:00',
 
   /**
-   * The maxmimum time which can be selected.
+   * The maximum time which can be selected.
    * This should be either a parseable string or a moment.js object.
    *
    * @attribute minTime
@@ -291,6 +291,16 @@ export default Component.extend({
   }),
 
   /**
+   * The API of ember-basic-dropdown.
+   * This is used to manually open/close the dropdown.
+   *
+   * @property _dropdownApi
+   * @type {Object}
+   * @private
+   */
+  _dropdownApi: null,
+
+  /**
    * Open the dropdown.
    *
    * @method _open
@@ -306,9 +316,20 @@ export default Component.extend({
    * @method _close
    * @private
    */
-  _close() {
+  _close(forceCloseDropdown = true) {
     set(this, 'isOpen', false);
     this._reset();
+
+    if (forceCloseDropdown) {
+      this._closeDropdown();
+    }
+  },
+
+  _closeDropdown() {
+    let dropdownApi = get(this, '_dropdownApi');
+    if (dropdownApi) {
+      dropdownApi.actions.close();
+    }
   },
 
   /**
@@ -453,6 +474,20 @@ export default Component.extend({
     set(this, 'stringValue', value || null);
   },
 
+  _closeNext() {
+    if (get(this, 'isDestroyed') || !get(this, 'isOpen')) {
+      return;
+    }
+    let inputValue = get(this, 'inputValue');
+    // If there is an input, this means it hasn't been processed yet
+    // --> Process it now!
+    if (inputValue) {
+      this._checkStringInput();
+    }
+
+    this._close();
+  },
+
   /**
    * Prepare data for the time input.
    *
@@ -475,6 +510,11 @@ export default Component.extend({
   actions: {
 
     open() {
+      let timer = get(this, '_closeNextTimer');
+      if (timer) {
+        run.cancel(timer);
+      }
+
       this._open();
     },
 
@@ -489,20 +529,8 @@ export default Component.extend({
 
     closeNext() {
       // Wait for all other events to finish
-      // Somehow, 1 or 10 doesn't work
-      run.later(this, () => {
-        if (get(this, 'isDestroyed')) {
-          return;
-        }
-        let inputValue = get(this, 'inputValue');
-        // If there is an input, this means it hasn't been processed yet
-        // --> Process it now!
-        if (inputValue) {
-          this._checkStringInput();
-        }
-
-        this._close();
-      }, 100);
+      let closeNext = run.debounce(this, this._closeNext, 100);
+      set(this, '_closeNextTimer', closeNext);
     },
 
     selectUp() {
@@ -544,17 +572,38 @@ export default Component.extend({
       let value = get(selectedOption, 'value');
       set(this, 'stringValue', value);
       this._checkInput();
+      this._close();
     },
 
     selectValue(value) {
       set(this, 'stringValue', value);
       this._checkInput();
+      this._close();
     },
 
     updateInputValue(val) {
       // Always open the select box when someone starts to type
       this._open();
       set(this, 'inputValue', val);
+    },
+
+    openDropdown(dropdownApi) {
+      set(this, '_dropdownApi', dropdownApi);
+    },
+
+    closeDropdown() {
+      this._close(false);
+    },
+
+    onKeyDown(dropdownApi, event) {
+      // Also handle the enter event here, since ember-basic-dropdown seems to be interfering somewhere
+      let { keyCode } = event;
+      let enterKeyCode = 13;
+      let tabKeyCode = 9;
+      if (keyCode === enterKeyCode || keyCode === tabKeyCode) {
+        this.send('selectCurrent');
+        return false;
+      }
     }
   }
 });
