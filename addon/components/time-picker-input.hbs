@@ -1,0 +1,10 @@
+{{! template-lint-disable no-down-event-binding }}
+<input
+  value={{@value}}
+  class='time-picker__input'
+  type='text'
+  tabindex='-1'
+  ...attributes
+  {{on 'keydown' this.onKeyDown}}
+  {{on 'input' this.onInput}}
+/>

@@ -1,95 +1,229 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 import moment from 'moment';
-import Ember from 'ember';
-import $ from 'jquery';
-import wait from 'ember-test-helpers/wait';
+import {
+  selectTime,
+  getSelectedTime,
+} from 'ember-date-components/test-support/helpers/time-picker';
+import { compareTimes } from 'dummy/tests/helpers/compare-times';
 
-const {
-  run
-} = Ember;
+module('Integration | Component | time-picker', function (hooks) {
+  setupRenderingTest(hooks);
 
-moduleForComponent('time-picker', 'Integration | Component | time picker', {
-  integration: true
-});
-
-test('it renders with no attribute set', function(assert) {
-  this.render(hbs`{{time-picker}}`);
-
-  assert.ok(this.$().find('input').length, 'input is shown by default');
-  assert.notOk(this.$().find('.time-picker__dropdown').hasClass('time-picker__dropdown--open'), 'Dropdown is not shown by default');
-});
-
-test('default value works', function(assert) {
-  let time = moment();
-  this.set('defaultTime', time);
-  this.render(hbs`{{time-picker value=defaultTime amPm=false}}`);
-
-  assert.equal(this.$().find('input').val().trim(), time.format('HH:mm'), 'Correct date is shown');
-});
-
-test('amPm setting works', function(assert) {
-  let time = moment();
-  this.set('defaultTime', time);
-  this.render(hbs`{{time-picker value=defaultTime amPm=true}}`);
-
-  assert.equal(this.$().find('input').val().trim(), time.format('hh:mm a'), 'Correct date is shown');
-});
-
-test('action is sent on value change', function(assert) {
-  assert.expect(3);
-
-  this.on('uptimeTime', function(time) {
-    assert.equal(arguments.length, 1, 'one argument is passed to action.');
-    assert.equal(time.format('HH:mm'), '14:30', 'correct time is passed to action.');
+  hooks.beforeEach(function () {
+    moment.locale('en');
   });
-  this.render(hbs`{{time-picker action=(action 'uptimeTime')}}`);
 
-  let $input = this.$().find('input');
-  $input.val('14:30').trigger('keyup');
-  let enterEvent = $.Event('keyup');
-  enterEvent.which = 13;
-  enterEvent.keyCode = 13;
-  $input.trigger(enterEvent);
+  test('it renders with no attribute set', async function (assert) {
+    this.onChange = () => {};
 
-  run.next(() => {
-    assert.notOk(this.$().find('.time-picker__dropdown').hasClass('time-picker__dropdown--open'), 'time picker dropdown is closed after selection.');
+    await render(hbs`<TimePicker @onChange={{this.onChange}} />`);
+
+    assert.dom('button').exists('button is shown by default');
+    assert
+      .dom('.time-picker__dropdown')
+      .doesNotExist('Dropdown is not shown by default');
+    assert.equal(
+      getSelectedTime(this.element),
+      null,
+      'no time is selected by default'
+    );
+    assert.dom('button').hasText('Enter time...');
   });
-});
 
-test('default value is not muted after change of time', function(assert) {
-  assert.expect(2);
+  test('value as moment instance works', async function (assert) {
+    let time = moment();
 
-  let time = moment(0).hours(4).minutes(30);
-  this.set('defaultTime', time);
-  this.on('uptimeTime', (newTime) => {
-    assert.equal(newTime.format('HH:mm'), '05:30', 'correct time is passed to action.');
-    assert.equal(this.get('defaultTime'), time, 'original default time is not changed.');
+    this.onChange = () => {};
+    this.defaultTime = time;
+
+    await render(hbs`
+      <TimePicker
+        @value={{this.defaultTime}}
+        @amPm={{false}}
+        @onChange={{this.onChange}}
+      />
+    `);
+
+    assert.dom('button').hasText(time.format('HH:mm'), 'Correct date is shown');
+    assert.ok(
+      compareTimes(getSelectedTime(this.element), time),
+      'getSelectedTime returns correct moment instance'
+    );
   });
-  this.render(hbs`{{time-picker value=defaultTime action=(action 'uptimeTime')}}`);
 
-  let $input = this.$().find('input');
-  $input.val('05:30').trigger('keyup');
-  let enterEvent = $.Event('keyup');
-  enterEvent.which = 13;
-  enterEvent.keyCode = 13;
-  $input.trigger(enterEvent);
-});
+  test('value as string works', async function (assert) {
+    this.onChange = () => {};
+    this.defaultTime = '08:30';
 
-test('amPm is correctly evaluated for locale en', function(assert) {
-  moment.locale('en');
-  let time = moment();
-  this.set('defaultTime', time);
-  this.render(hbs`{{time-picker value=defaultTime}}`);
+    await render(hbs`
+      <TimePicker
+        @value={{this.defaultTime}}
+        @amPm={{false}}
+        @onChange={{this.onChange}}
+      />
+    `);
 
-  assert.equal(this.$().find('input').val().trim(), time.format('hh:mm a'), 'Correct date is shown');
-});
+    assert.dom('button').hasText('08:30', 'Correct date is shown');
+    assert.ok(
+      compareTimes(
+        getSelectedTime(this.element),
+        moment().set('hour', 8).set('minute', 30).startOf('minute')
+      ),
+      'getSelectedTime returns correct moment instance'
+    );
+  });
 
-test('amPm is correctly evaluated for locale de', function(assert) {
-  moment.locale('de');
-  let time = moment();
-  this.set('defaultTime', time);
-  this.render(hbs`{{time-picker value=defaultTime}}`);
+  test('amPm setting works', async function (assert) {
+    let time = moment();
 
-  assert.equal(this.$().find('input').val().trim(), time.format('HH:mm'), 'Correct date is shown');
+    this.onChange = () => {};
+    this.defaultTime = time;
+
+    await render(hbs`
+      <TimePicker
+        @value={{this.defaultTime}}
+        @amPm={{true}}
+        @onChange={{this.onChange}}
+      />
+    `);
+
+    assert
+      .dom('button')
+      .hasText(time.format('hh:mm a'), 'Correct date is shown');
+  });
+
+  test('action is sent on value change', async function (assert) {
+    assert.expect(3);
+
+    this.onChange = function (time) {
+      assert.equal(arguments.length, 1, 'one argument is passed to action.');
+      assert.equal(
+        time.format('HH:mm'),
+        '14:30',
+        'correct time is passed to action.'
+      );
+    };
+
+    await render(hbs`
+      <TimePicker
+        @onChange={{this.onChange}}
+      />
+    `);
+
+    await selectTime(this.element, '14:30');
+    assert
+      .dom('.time-picker__dropdown')
+      .doesNotExist('time picker dropdown is closed after selection.');
+  });
+
+  test('default value is not mutated after change of time', async function (assert) {
+    assert.expect(2);
+
+    let time = moment(0).hours(4).minutes(30);
+    this.defaultTime = time;
+
+    this.onChange = (newTime) => {
+      assert.equal(
+        newTime.format('HH:mm'),
+        '05:30',
+        'correct time is passed to action.'
+      );
+      assert.equal(
+        this.defaultTime,
+        time,
+        'original default time is not changed.'
+      );
+    };
+
+    await render(hbs`
+      <TimePicker
+        @value={{this.defaultTime}}
+        @onChange={{this.onChange}}
+      />
+    `);
+
+    await selectTime(this.element, '05:30');
+  });
+
+  test('amPm is correctly evaluated for locale en', async function (assert) {
+    moment.locale('en');
+    let time = moment();
+
+    this.defaultTime = time;
+    this.onChange = () => {};
+
+    await render(hbs`
+      <TimePicker
+        @value={{this.defaultTime}}
+        @onChange={{this.onChange}}
+      />
+    `);
+
+    assert
+      .dom('button')
+      .hasText(time.format('hh:mm a'), 'Correct date is shown');
+  });
+
+  test('amPm is correctly evaluated for locale de', async function (assert) {
+    moment.locale('de');
+    let time = moment();
+
+    this.defaultTime = time;
+    this.onChange = () => {};
+
+    await render(hbs`
+      <TimePicker
+        @value={{this.defaultTime}}
+        @onChange={{this.onChange}}
+      />
+    `);
+
+    assert.dom('button').hasText(time.format('HH:mm'), 'Correct date is shown');
+  });
+
+  test('`renderInPlace` correctly rendered', async function (assert) {
+    this.onChange = () => {};
+
+    await render(hbs`
+      <TimePicker
+        @renderInPlace={{true}}
+        @onChange={{this.onChange}}
+      />
+    `);
+
+    assert
+      .dom('.ember-basic-dropdown-trigger')
+      .hasClass(
+        'ember-basic-dropdown-trigger--in-place',
+        'The trigger has a special `--in-place` class'
+      );
+  });
+
+  test('it allows to yield a custom button', async function (assert) {
+    let time = moment();
+
+    this.onChange = () => {};
+    this.defaultTime = time;
+
+    await render(hbs`
+      <TimePicker
+        @value={{this.defaultTime}}
+        @amPm={{false}}
+        @onChange={{this.onChange}}
+      as |opts|>
+        <button type='button' id='test-1-button'>{{opts.displayValue}}</button>
+      </TimePicker>
+    `);
+
+    assert.dom('button').hasText(time.format('HH:mm'), 'Correct date is shown');
+    assert.dom('button').hasAttribute('id', 'test-1-button');
+
+    assert.ok(
+      compareTimes(getSelectedTime(this.element), time),
+      'getSelectedTime returns correct moment instance'
+    );
+  });
 });

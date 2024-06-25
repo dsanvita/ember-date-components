@@ -1,9 +1,6 @@
-import Ember from 'ember';
+import { isNone } from '@ember/utils';
 import parseTime from './parse-time';
-
-const {
-  isNone
-} = Ember;
+import { A as array } from '@ember/array';
 
 /**
  * Build a time range.
@@ -29,9 +26,14 @@ export function buildTimeRange({ minTime, maxTime, step }) {
   max = parseTime(max);
 
   let lastValue = min;
-  let steps = [];
+  let steps = array([]);
 
-  while (lastValue.date() === max.date() && (lastValue.hours() < max.hours() || (lastValue.hours() === max.hours() && lastValue.minutes() <= max.minutes()))) {
+  while (
+    lastValue.date() === max.date() &&
+    (lastValue.hours() < max.hours() ||
+      (lastValue.hours() === max.hours() &&
+        lastValue.minutes() <= max.minutes()))
+  ) {
     steps.push(lastValue);
     let newTime = lastValue.clone().add(step, 'minutes');
     lastValue = newTime;

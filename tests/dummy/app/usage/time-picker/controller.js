@@ -1,24 +1,10 @@
-import Ember from 'ember';
-import moment from 'moment';
+import Controller from '@ember/controller';
+import { action } from '@ember/object';
 
-const {
-  Controller
-} = Ember;
-
-export default Controller.extend({
-
-  date2: {
-    value: moment().add(2, 'months')
-  },
-
-  date3: {
-    min: moment().subtract(5, 'days'),
-    max: moment().add(10, 'days')
-  },
-
-  actions: {
-    updateTime(date) {
-      console.log(date);
-    }
+/* eslint-disable no-console */
+export default class UsageTimePickerController extends Controller {
+  @action
+  updateTime(date) {
+    console.log(date);
   }
-});
+}

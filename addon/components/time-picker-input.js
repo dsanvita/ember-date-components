@@ -1,78 +1,53 @@
-import Ember from 'ember';
-
-const {
-  get,
-  TextField
-} = Ember;
+import Component from '@glimmer/component';
+import { action } from '@ember/object';
 
 /**
  * This is an extended {{input}} to send appropriate events for arrowUp/arrowDown.
  * It is also slightly changed to send an input-changed event when a key that is neither arrowUp/arrowDown, enter or escape
  * is pressed.
- *
- * @namespace EmberDateComponents
- * @class TimePickerInput
- * @extends Ember.TextField
- * @public
  */
-export default TextField.extend({
-  classNames: [],
-
-  attributeBindings: ['disabled'],
-
-  type: 'text',
-
-  /**
-   * If this is true, the time picker is disabled and the selected time cannot be changed.
-   *
-   * @attribute disabled
-   * @type {Boolean}
-   * @default false
-   * @public
-   */
-  disabled: false,
-
-  interpretKeyEvents(event) {
-    if (!event) {
-      return this.inputChange();
+export default class TimePickerInput extends Component {
+  @action
+  onKeyDown(event) {
+    // Tab doesn't trigger keyUp, so we need to capture it in keyDown
+    switch (event.key) {
+      case 'Enter':
+        return this._enter(event);
+      case 'Escape':
+        return this._escape(event);
+      case 'ArrowUp':
+        return this._arrowUp(event);
+      case 'ArrowDown':
+        return this._arrowDown(event);
+      case 'Tab':
+        return this._tab(event);
     }
-    let map = get(this, 'KEY_EVENTS');
-    let { keyCode } = event;
-
-    let method = map[keyCode];
-    if (method) {
-      return this[method](event);
-    } else {
-      return this.inputChange();
-    }
-  },
-
-  inputChange() {
-    this._elementValueDidChange();
-    let value = get(this, 'value');
-    this.sendAction('input-change', value, this);
-  },
-
-  arrowUp(event) {
-    this.sendAction('arrow-up', this, event);
-  },
-
-  arrowDown(event) {
-    this.sendAction('arrow-down', this, event);
-  },
-
-  escape(event) {
-    this.sendAction('escape', this, event);
-  },
-
-  enter(event) {
-    this.sendAction('enter', this, event);
-  },
-
-  KEY_EVENTS: {
-    38: 'arrowUp',
-    40: 'arrowDown',
-    13: 'enter',
-    27: 'escape'
   }
-});
+
+  @action
+  onInput(event) {
+    let { value } = event.target;
+
+    this.args.onInput(value);
+  }
+
+  _tab(event) {
+    this.args.onTab(event);
+  }
+
+  _arrowUp(event) {
+    this.args.onArrowUp(event);
+  }
+
+  _arrowDown(event) {
+    this.args.onArrowDown(event);
+  }
+
+  _escape(event) {
+    this.args.onEscape(event);
+  }
+
+  _enter(event) {
+    this.args.onEnter(event);
+  }
+}

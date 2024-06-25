@@ -1,28 +1,30 @@
-import Ember from 'ember';
+import Controller from '@ember/controller';
 import moment from 'moment';
+import { action } from '@ember/object';
 
-const {
-  Controller
-} = Ember;
-
-export default Controller.extend({
-
-  myOptions: ['clear',
+/* eslint-disable no-console */
+export default class UsageCustomOptionsController extends Controller {
+  myOptions = [
+    'clear',
     'today',
     'thisWeek',
     {
       action: 'selectDateRange',
       label: 'Last 3 days',
-      actionValue: [moment().startOf('day').subtract(3, 'days'), moment().startOf('day')]
-    }
-  ],
-
-  actions: {
-    updateDateRange(vals) {
-      console.log(vals);
+      actionValue: [
+        moment().startOf('day').subtract(3, 'days'),
+        moment().startOf('day'),
+      ],
     },
-    updateDate(val) {
-      console.log(val);
-    }
+  ];
+
+  @action
+  updateDateRange(vals) {
+    console.log(vals);
   }
-});
+
+  @action
+  updateDate(val) {
+    console.log(val);
+  }
+}

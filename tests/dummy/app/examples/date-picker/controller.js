@@ -1,25 +1,19 @@
-import Ember from 'ember';
+import Controller from '@ember/controller';
+import { action } from '@ember/object';
 import moment from 'moment';
-import computed from 'ember-computed';
+import { tracked } from '@glimmer/tracking';
 
-const {
-  Controller
-} = Ember;
+export default class ExampleDatePickerController extends Controller {
+  @tracked date1 = null;
+  @tracked date2 = moment('2015-01-01');
 
-export default Controller.extend({
-
-  date1: null,
-
-  date2: computed(function() {
-    return moment('2015-01-01');
-  }),
-
-  actions: {
-    updateDate1(date) {
-      this.set('date1', date);
-    },
-    updateDate2(date) {
-      this.set('date2', date);
-    }
+  @action
+  updateDate1(date) {
+    this.date1 = date;
   }
-});
+
+  @action
+  updateDate2(date) {
+    this.date2 = date;
+  }
+}

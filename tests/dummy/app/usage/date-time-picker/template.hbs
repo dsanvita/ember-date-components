@@ -1,0 +1,150 @@
+{{page-title 'Date Time Picker'}}
+
+<h1>
+  date-time-picker
+</h1>
+
+<p>
+  This component adds a date/time picker combo. It is basically a wrapper for date-picker & time-picker in combination.
+</p>
+
+<h2>
+  Basic Usage
+</h2>
+<DateTimePicker @value={{this.date1}} @onChange={{this.updateDate1}} />
+
+<CodeBlock @language="handlebars">
+  &lt;DateTimePicker @value={{this.date}} @onChange={{this.updateDate}} /&gt;
+</CodeBlock>
+
+<div class='wrapper'>
+  <h2>
+    With start value
+  </h2>
+
+  <DateTimePicker @value={{this.date2}} @onChange={{this.updateDate1}} />
+</div>
+
+<div class='wrapper'>
+  <h2>
+    Disabled
+  </h2>
+  <DateTimePicker
+    @value={{this.date1}}
+    @onChange={{this.updateDate1}}
+    @disabled={{true}}
+  />
+</div>
+
+<h2>
+  With custom date/time picker properties
+</h2>
+<DateTimePicker @value={{this.date1}} @onChange={{this.updateDate1}}>
+  <:date as |DatePicker|>
+    <DatePicker @placeholder='Custom placeholder' />
+  </:date>
+
+  <:time as |TimePicker|>
+    <TimePicker @placeholder='Custom time' />
+  </:time>
+</DateTimePicker>
+
+<p>
+  Note that this uses named blocks, a feature available in Ember 3.25+. 
+  If you want to use it in an app running an older version of Ember, you can install
+  <a href='https://github.com/ember-polyfills/ember-named-blocks-polyfill'>
+    ember-named-blocks-polyfill
+  </a>
+  .
+</p>
+
+<CodeBlock @language="handlebars">
+  &lt;DateTimePicker @value={{this.date1}} @onChange={{this.updateDate1}}&gt;
+  &lt;:date as |DatePicker|&gt;
+    &lt;DatePicker @placeholder='Custom placeholder' /&gt;
+  &lt;/:date&gt;
+
+  &lt;:time as |TimePicker|&gt;
+    &lt;TimePicker @placeholder='Custom time' /&gt;
+  &lt;/:time&gt;
+&lt;/DateTimePicker&gt;
+</CodeBlock>
+
+<h2>
+  Attributes
+</h2>
+
+<table class='table table-bordered table-hover table-striped'>
+  <thead>
+    <tr>
+      <th>
+        Attribute
+      </th>
+      <th>
+        Description
+      </th>
+      <th>
+        Default
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        value
+      </td>
+      <td>
+        The default value for the date picker.
+        This can be null or a moment.js-Date.
+      </td>
+      <td>
+        <CodeInline @language="javascript">
+          null
+        </CodeInline>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        onChange
+      </td>
+      <td>
+        The action to call whenever the date or time changes.
+        The action will receive the selected (moment.js) date as parameter.
+      </td>
+      <td>
+        <CodeInline @language="javascript">
+          null
+        </CodeInline>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        ignoreZeroTime
+      </td>
+      <td>
+        If this is true, if the time is 00:00 it will not be displayed in the time picker.
+        This has the benefit that if you select a date first,
+        the time will not be auto-prefilled with 00:00 but stay empty.
+        Note that this only affects the display of the time.
+      </td>
+      <td>
+        <CodeInline @language="javascript">
+          true
+        </CodeInline>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        disabled
+      </td>
+      <td>
+        If this is true, the date/time cannot be changed.
+      </td>
+      <td>
+        <CodeInline @language="javascript">
+          false
+        </CodeInline>
+      </td>
+    </tr>
+  </tbody>
+</table>

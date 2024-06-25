@@ -1,16 +1,17 @@
-/* jshint node: true */
+'use strict';
 
-module.exports = function(environment) {
-  var ENV = {
+module.exports = function (environment) {
+  const ENV = {
     modulePrefix: 'dummy',
-    environment: environment,
+    environment,
     rootURL: '/',
-    locationType: 'auto',
+    locationType: 'history',
     EmberENV: {
+      EXTEND_PROTOTYPES: false,
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
-        // e.g. 'with-controller': true
-      }
+        // e.g. EMBER_NATIVE_DECORATOR_SUPPORT: true
+      },
     },
 
     APP: {
@@ -19,8 +20,9 @@ module.exports = function(environment) {
     },
 
     moment: {
-      includeLocales: true
-    }
+      includeLocales: ['en', 'de'],
+      includeTimezone: 'all',
+    },
   };
 
   if (environment === 'development') {
@@ -41,12 +43,12 @@ module.exports = function(environment) {
     ENV.APP.LOG_VIEW_LOOKUPS = false;
 
     ENV.APP.rootElement = '#ember-testing';
+    ENV.APP.autoboot = false;
   }
 
   if (environment === 'production') {
     ENV.locationType = 'hash';
     ENV.rootURL = '/ember-date-components/';
-
   }
 
   return ENV;

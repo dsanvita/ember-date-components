@@ -1,21 +1,17 @@
-import Ember from 'ember';
+import Controller from '@ember/controller';
 import moment from 'moment';
+import { action } from '@ember/object';
 
-const {
-  Controller
-} = Ember;
-
-export default Controller.extend({
-
-  date1: {
+/* eslint-disable no-console */
+export default class UsageDateRangePickerController extends Controller {
+  date1 = {
     value: [moment().subtract(7, 'days'), moment().add(2, 'days')],
     min: moment().subtract(10, 'days'),
-    max: moment().add(20, 'days')
-  },
+    max: moment().add(20, 'days'),
+  };
 
-  actions: {
-    updateDateRange(vals) {
-      console.log(vals);
-    }
+  @action
+  updateDateRange(vals) {
+    console.log(vals);
   }
-});
+}

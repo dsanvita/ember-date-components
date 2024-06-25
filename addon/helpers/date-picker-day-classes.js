@@ -1,10 +1,9 @@
-import Ember from 'ember';
+import Helper from '@ember/component/helper';
 
-const {
-  Helper
-} = Ember;
-
-export function datePickerDayClasses([baseClass], { isToday=false, isSelected=false, isDisabled=false, isInRange=false }) {
+export function datePickerDayClasses(
+  [baseClass],
+  { isToday = false, isSelected = false, isDisabled = false, isInRange = false }
+) {
   let isTodayClass = isToday ? ` ${baseClass}--today` : '';
   let isSelectedClass = isSelected ? ` ${baseClass}--selected` : '';
   let isDisabledClass = isDisabled ? ` ${baseClass}--disabled` : '';

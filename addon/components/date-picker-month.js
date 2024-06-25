@@ -1,130 +1,55 @@
-import Ember from 'ember';
-import layout from '../templates/components/date-picker-month';
+import Component from '@glimmer/component';
+import { A as array } from '@ember/array';
+import { action } from '@ember/object';
 import moment from 'moment';
-import computed from 'ember-computed';
-
-const {
-  get,
-  set,
-  getProperties,
-  Component,
-  A: array
-} = Ember;
+import { cached, tracked } from '@glimmer/tracking';
 
 /**
  * A single month view.
  * This is used internally by the date-picker.
  * It is stand alone and could also be used without it.
  *
- * @namespace EmberDateComponents
- * @class DatePickerMonth
- * @extends Ember.Component
- * @public
+ * Attributes:
+ * - selectedDates
+ * - month
+ * - disabledDates
+ * - minDate
+ * - maxDate
+ * - showWeekdays
+ * - selectDate
+ * - startWeekOnSunday
  */
-export default Component.extend({
-  layout,
-  classNames: ['date-picker__calendar__outer'],
+export default class DatePickerMonth extends Component {
+  @tracked _selectedDates = undefined;
 
-  // ATTRIBUTES BEGIN ----------------------------------------
+  get selectedDates() {
+    if (this._selectedDates) {
+      return this._selectedDates;
+    }
 
-  /**
-   * The selected dates for the date picker.
-   * This has to be an array with 0-2 elements. If it has 2 elements, it will show the range between the two.
-   *
-   * @attributes selectedDates
-   * @type {Date[]}
-   * @optional
-   * @public
-   */
-  selectedDates: [],
+    return this.args.selectedDates || [];
+  }
 
-  /**
-   * The month that should be shown.
-   * If this is not set, it will default to the current month.
-   *
-   * @attribute month
-   * @type {Date}
-   * @optional
-   * @public
-   */
-  month: null,
+  get showWeekdays() {
+    return typeof this.args.showWeekdays === 'boolean'
+      ? this.args.showWeekdays
+      : true;
+  }
 
-  /**
-   * An optional minimum date.
-   * No dates before this date will be selectable.
-   *
-   * @attribute minDate
-   * @type {Date}
-   * @optional
-   * @public
-   */
-  minDate: null,
+  get minDate() {
+    let { minDate } = this.args;
+    return minDate ? minDate.clone().startOf('day') : null;
+  }
 
-  /**
-   * An optional maximum date.
-   * No dates after this date will be selectable.
-   *
-   * @attribute maxDate
-   * @type {Date}
-   * @optional
-   * @public
-   */
-  maxDate: null,
+  get maxDate() {
+    let { maxDate } = this.args;
+    return maxDate ? maxDate.clone().startOf('day') : null;
+  }
 
-  /**
-   * If weekdays (Mo, Tu, ...) should be shown in the calendar.
-   *
-   * @attribute showWeekdays
-   * @type {Boolean}
-   * @default true
-   * @public
-   */
-  showWeekdays: true,
-
-  /**
-   * This action will receive the selected date as parameter.
-   * It is called when a date is clicked.
-   *
-   * @event selectDate
-   * @param {Date} date The selected date
-   * @public
-   */
-  selectDate: null,
-
-  // ATTRIBUTES END ----------------------------------------
-
-  // PROPERTIES BEGIN ----------------------------------------
-
-  /**
-   * Internally, the minDate is copied, set to startOf('day') and saved here to save unnecessary processing.
-   *
-   * @property _minDate
-   * @type {Date}
-   * @private
-   */
-  _minDate: null,
-
-  /**
-   * Internally, the maxDate is copied, set to startOf('day') and saved here to save unnecessary processing.
-   *
-   * @property _maxDate
-   * @type {Date}
-   * @private
-   */
-  _maxDate: null,
-
-  /**
-   * This takes the given month and converts it to the beginning of the Date object.
-   * If no month is given, it will default to the current month.
-   *
-   * @property currentMonth
-   * @type {Date}
-   * @private
-   */
-  currentMonth: computed('month', function() {
-    let date = get(this, 'month');
-    return date ? date.clone().startOf('month') : moment().startOf('month');
-  }),
+  get currentMonth() {
+    let { month } = this.args;
+    return month ? month.clone().startOf('month') : moment().startOf('month');
+  }
 
   /**
    * The currently displayed days in the calendar.
@@ -146,22 +71,27 @@ export default Component.extend({
    *    notInCurrentMonth: true
    * }
    * ```
-   *
-   * @property _daysInMonth
-   * @type {Object[]}
-   * @readOnly
-   * @private
    */
-  _daysInMonth: computed('currentMonth', function() {
-    let currentMonth = get(this, 'currentMonth');
-    let startWeekOnSunday = get(this, 'startWeekOnSunday');
+  @cached
+  get _daysInMonth() {
+    let { startWeekOnSunday } = this.args;
+    let { currentMonth } = this;
     let daysInMonth = currentMonth.daysInMonth();
     let days = array();
 
     // start with days from previous month to fill up first week
-    let firstWeekday = startWeekOnSunday ? currentMonth.day() + 1 : currentMonth.isoWeekday();
+    let firstWeekday = startWeekOnSunday
+      ? currentMonth.day() + 1
+      : currentMonth.isoWeekday();
+
     for (let i = firstWeekday; i > 1; i--) {
-      days.push(null);
+      days.push({
+        dateString: currentMonth
+          .clone()
+          .subtract(i, 'days')
+          .format('YYYY-MM-DD'),
+        show: false,
+      });
     }
 
     // create one day object for every day in the month
@@ -173,7 +103,8 @@ export default Component.extend({
         year: day.year(),
         month: day.month(),
         day: day.date(),
-        weekday: day.isoWeekday()
+        weekday: day.isoWeekday(),
+        show: true,
       };
 
       days.push(dayObject);
@@ -181,105 +112,66 @@ export default Component.extend({
 
     // end with days from next month to fill up last week
     let endOfMonth = currentMonth.clone().endOf('month');
-    let lastWeekday = startWeekOnSunday ? endOfMonth.day() + 1 : endOfMonth.isoWeekday();
+    let lastWeekday = startWeekOnSunday
+      ? endOfMonth.day() + 1
+      : endOfMonth.isoWeekday();
     for (let i = 7; i > lastWeekday; i--) {
-      days.push(null);
+      days.push({
+        dateString: endOfMonth.clone().add(i, 'days').format('YYYY-MM-DD'),
+        show: false,
+      });
     }
 
     return days;
-  }),
+  }
 
-  /**
-   * This takes the generated _daysInMonth and parses the days.
-   * It will set disabled and inRange accordingly for all days.
-   * Note that for performance reasons, this will mutate the original array instead of creating a new one.
-   *
-   * @property daysInMonth
-   * @type {Object[]}
-   * @readOnly
-   * @private
-   */
-  daysInMonth: computed('_daysInMonth', '_minDate', '_maxDate', 'selectedDates.[]', function() {
-    let days = get(this, '_daysInMonth');
-
-    days.forEach((day) => {
-      if (!day) {
-        return;
+  get daysInMonth() {
+    return this._daysInMonth.map((day) => {
+      if (!day.show) {
+        return day;
       }
-      set(day, 'disabled', this._dayIsDisabled(day.date));
-      set(day, 'inRange', this._dayIsInRange(day.date));
+
+      return Object.assign({}, day, {
+        disabled: this._dayIsDisabled(day.date),
+        inRange: this._dayIsInRange(day.date),
+      });
     });
+  }
 
-    return days;
-  }),
-
-  /**
-   * The localized weekdays.
-   *
-   * @property weekdays
-   * @type {String[]}
-   * @readOnly
-   * @private
-   */
-  weekdays: computed(function() {
+  get weekdays() {
     let weekdays = moment.weekdaysMin();
-    let startWeekOnSunday = get(this, 'startWeekOnSunday');
+    let { startWeekOnSunday } = this.args;
 
     if (!startWeekOnSunday) {
       weekdays.push(weekdays.shift());
     }
 
     return weekdays;
-  }),
+  }
 
-  /**
-   * The current day.
-   *
-   * @property today
-   * @type {Date}
-   * @readOnly
-   * @private
-   */
-  today: computed(function() {
+  get today() {
     return moment().startOf('day');
-  }),
+  }
 
   // PROPERTIES END ----------------------------------------
 
-  // HOOKS BEGIN ----------------------------------------
-
-  didReceiveAttrs() {
-    let minDate = get(this, 'minDate');
-    let maxDate = get(this, 'maxDate');
-
-    set(this, '_minDate', minDate ? minDate.clone().startOf('day') : null);
-    set(this, '_maxDate', maxDate ? maxDate.clone().startOf('day') : null);
-  },
-
-  // HOOKS END ----------------------------------------
-
   // METHODS BEGIN ----------------------------------------
 
-  /**
-   * Check if a date is disabled.
-   * This checks if the date is inside of minDate/maxDate.
-   *
-   * @method _dayIsDisabled
-   * @param {Date} day The date to check
-   * @return {Boolean}
-   * @private
-   */
   _dayIsDisabled(day) {
-    let {
-      _minDate,
-      _maxDate
-    } = getProperties(this, '_minDate', '_maxDate');
-
-    if (_minDate && _minDate.valueOf() > day.valueOf()) {
+    let { minDate, maxDate } = this;
+    if (minDate && minDate.valueOf() > day.valueOf()) {
       return true;
+    } else if (maxDate && maxDate.valueOf() < day.valueOf()) {
+      return true;
+    } else {
+      return this._dayNotAvailable(day);
     }
-    return _maxDate && _maxDate.valueOf() < day.valueOf();
-  },
+  }
+
+  _dayNotAvailable(day) {
+    let disabledDates = this.args.disabledDates || [];
+    return !!array(disabledDates).find((date) => date.isSame(day, 'day'));
+  }
 
   /**
    * Check if a day is in the range of the selectedDates.
@@ -291,7 +183,7 @@ export default Component.extend({
    * @private
    */
   _dayIsInRange(day) {
-    let selectedDates = get(this, 'selectedDates');
+    let { selectedDates } = this;
 
     if (!selectedDates || !selectedDates.length || selectedDates.length < 2) {
       return false;
@@ -306,14 +198,10 @@ export default Component.extend({
     } else {
       return dayVal < selectedUntilVal && dayVal > selectedDateVal;
     }
-  },
-
-  actions: {
-    selectDate(date) {
-      let action = get(this, 'attrs.selectDate');
-      if (action) {
-        action(date);
-      }
-    }
   }
-});
+
+  @action
+  selectDate(date) {
+    this.args.selectDate(date);
+  }
+}

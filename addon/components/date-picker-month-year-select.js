@@ -1,29 +1,21 @@
-import Ember from 'ember';
-import layout from '../templates/components/date-picker-month-year-select';
-import computed from 'ember-computed';
+import Component from '@glimmer/component';
+import { action } from '@ember/object';
 import moment from 'moment';
 
-const {
-  Component,
-  get
-} = Ember;
-
-export default Component.extend({
-  layout,
-
-  minDate: null,
-  maxDate: null,
-  currentMonth: null,
-  disableYearPicker: false,
-  disableMonthPicker: false,
-  availableYearOffset: 10,
-
-  availableMonths: computed('currentMonth', 'minDate', 'maxDate', function() {
-    let currentMonth = get(this, 'currentMonth');
+/**
+ * Arguments:
+ * - currentMonth
+ * - minDate
+ * - maxDate
+ * - disableMonthPicker
+ * - disableYearPicker
+ * - availableYearOffset
+ * - updateMonth
+ */
+export default class DatePickerMonthYearSelect extends Component {
+  get availableMonths() {
+    let { currentMonth, minDate, maxDate } = this.args;
     let year = currentMonth.year();
-
-    let minDate = get(this, 'minDate');
-    let maxDate = get(this, 'maxDate');
 
     minDate = minDate ? minDate.clone().startOf('month') : null;
     maxDate = maxDate ? maxDate.clone().startOf('month') : null;
@@ -41,18 +33,14 @@ export default Component.extend({
     }
 
     return months;
-  }),
+  }
 
-  availableYears: computed('currentMonth', 'minDate', 'maxDate', function() {
-    let currentMonth = get(this, 'currentMonth');
-
-    let minDate = get(this, 'minDate');
-    let maxDate = get(this, 'maxDate');
+  get availableYears() {
+    let { currentMonth, minDate, maxDate, availableYearOffset } = this.args;
 
     minDate = minDate ? minDate.clone().startOf('year') : null;
     maxDate = maxDate ? maxDate.clone().startOf('year') : null;
 
-    let availableYearOffset = get(this, 'availableYearOffset');
     let dates = [];
     for (let i = availableYearOffset; i > 0; i--) {
       let date = currentMonth.clone().subtract(i, 'years').startOf('month');
@@ -77,26 +65,20 @@ export default Component.extend({
     }
 
     return dates;
-  }),
-
-  monthPickerDisabled: computed('disableMonthPicker', 'availableMonths.length', function() {
-    return get(this, 'disableMonthPicker') || !get(this, 'availableMonths.length');
-  }),
-
-  yearPickerDisabled: computed('disableYearPicker', 'availableYears.length', function() {
-    return get(this, 'disableYearPicker') || !get(this, 'availableYears.length');
-  }),
-
-  actions: {
-
-    gotoMonth(month, dropdownApi) {
-      let action = get(this, 'gotoMonth');
-      action(month);
-
-      if (dropdownApi) {
-        dropdownApi.actions.close();
-      }
-    }
-
   }
-});
+
+  get monthPickerDisabled() {
+    return this.args.disableMonthPicker || !this.availableMonths.length;
+  }
+
+  get yearPickerDisabled() {
+    return this.args.disableYearPicker || !this.availableYears.length;
+  }
+
+  @action
+  gotoMonth(month, dropdownApi) {
+    this.args.gotoMonth(month);
+
+    dropdownApi?.actions.close();
+  }
+}

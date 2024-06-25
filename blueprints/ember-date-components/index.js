@@ -1,4 +1,3 @@
-/* eslint-env node */
 'use strict';
 
 const path = require('path');
@@ -13,6 +12,9 @@ module.exports = {
 
   afterInstall() {
     let dependencies = this.project.dependencies();
+
+    this.addAddonToProject('ember-moment');
+
     let type;
     let importStatement = "\n@import 'ember-basic-dropdown';\n";
 
@@ -35,5 +37,5 @@ module.exports = {
         this.ui.writeLine(`Created ${file}`);
       }
     }
-  }
+  },
 };
